@@ -127,6 +127,12 @@ const PRODUCTS = [
     desc: "Create “Permanent Proxies” for navigators in Y1 clinics so that they can start quality work immediately and not have a difference between year 1 and year 2.", 
     cost: 150 
   },
+  { 
+    id: 17, 
+    name: "Single Patient Task Workflow", 
+    desc: "Combine all related tasks for a patient into a single cohesive workflow to reduce duplication and streamline follow-up.", 
+    cost: 500 
+  },
 ];
 
 export default function App() {
