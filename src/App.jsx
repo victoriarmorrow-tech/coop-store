@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Lock, Eye, EyeOff, ShieldAlert, ShoppingCart, Trash2, Plus } from 'lucide-react';
+import { Check, Lock, Eye, EyeOff, ShieldAlert, ShoppingCart, Trash2, Plus, RotateCcw } from 'lucide-react';
 
 // --- FIREBASE IMPORTS ---
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, collection, addDoc, onSnapshot, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 // --- CONFIGURATION ---
 // TODO: REPLACE THIS SECTION WITH YOUR KEYS FROM FIREBASE CONSOLE
@@ -30,7 +30,7 @@ const PRIMARY_GREEN = '#154734';
 const PRIMARY_GOLD = '#D6A461';
 
 const FarmLogo = () => (
-  <svg width="48" height="48" viewBox="0 0 100 100" className="mr-3 shrink-0" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+  <svg width="48" height="48" viewBox="0 0 100 100" className="mr-3 shrink-0" xmlns="http://www.w3.org/2000/svg">
     {/* Silo Body */}
     <path d="M10 35 V95 H30 V35 C30 25 10 25 10 35 Z" fill={PRIMARY_GOLD} />
     {/* Silo Stripes (Cutout effect using Green) */}
@@ -183,8 +183,12 @@ export default function App() {
            }
          });
          setVoteCounts(newTallies);
+       }, (error) => {
+          console.error("Error fetching votes. Check your Firebase permissions/keys:", error);
        });
        return () => unsubscribe();
+    } else {
+       console.warn("Database not initialized. Global counts will not update. Check firebaseConfig.");
     }
   }, []);
 
@@ -224,6 +228,37 @@ export default function App() {
       } catch (e) {
         alert("Error submitting vote to database. Check console.");
         console.error(e);
+      }
+    }
+  };
+
+  const handleReset = async () => {
+    if (!db) {
+      alert("Database not connected.");
+      return;
+    }
+    
+    const confirmReset = window.confirm("WARNING: This will delete ALL global votes from the database. This action cannot be undone. Are you sure?");
+    
+    if (confirmReset) {
+      try {
+        // 1. Get all documents in the 'votes' collection
+        const querySnapshot = await getDocs(collection(db, "votes"));
+        
+        // 2. Create an array of delete promises
+        const deletePromises = querySnapshot.docs.map(document => 
+          deleteDoc(doc(db, "votes", document.id))
+        );
+        
+        // 3. Execute all deletions
+        await Promise.all(deletePromises);
+        
+        alert("All votes have been reset.");
+        setHasSubmitted(false); // Optional: Allow admin to vote again
+        localStorage.removeItem('budget_app_submitted');
+      } catch (error) {
+        console.error("Error resetting votes:", error);
+        alert("Failed to reset votes. Check console for details.");
       }
     }
   };
@@ -460,9 +495,15 @@ export default function App() {
              </div>
           )}
 
-          {/* Admin Reset Removed: Requires Database Console Access */}
-          <div className="mt-8 pt-8 w-full text-center">
-              <p className="text-[10px] text-gray-300">System ID: {firebaseConfig.projectId || "LOCAL"}</p>
+          {/* ADMIN SECTION */}
+          <div className="mt-12 pt-8 w-full border-t border-gray-100 flex flex-col items-center">
+              <p className="text-[10px] text-gray-300 mb-2">System ID: {firebaseConfig.projectId || "LOCAL"}</p>
+              <button 
+               onClick={handleReset}
+               className="text-xs text-red-300 hover:text-red-500 hover:bg-red-50 px-3 py-1 rounded transition-colors flex items-center gap-1"
+              >
+                <RotateCcw size={10} /> Admin Reset
+              </button>
           </div>
 
         </div>
