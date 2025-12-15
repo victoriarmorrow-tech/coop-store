@@ -1,7 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Lock, Eye, EyeOff, ShieldAlert, ShoppingCart, Trash2, Plus } from 'lucide-react';
 
-// --- Configuration ---
+// --- FIREBASE IMPORTS ---
+import { initializeApp } from "firebase/app";
+import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore";
+
+// --- CONFIGURATION ---
+// TODO: REPLACE THIS SECTION WITH YOUR KEYS FROM FIREBASE CONSOLE
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY_HERE",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "...",
+  appId: "..."
+};
+
+// Initialize Firebase safely
+let db;
+try {
+   const app = initializeApp(firebaseConfig);
+   db = getFirestore(app);
+} catch (error) {
+   console.error("Error connecting to database. Did you paste your config keys?", error);
+}
+
 const MAX_BUDGET = 570;
 const PRIMARY_GREEN = '#154734';
 const PRIMARY_GOLD = '#D6A461';
@@ -143,13 +166,26 @@ export default function App() {
   const [voteCounts, setVoteCounts] = useState({});
 
   useEffect(() => {
-    // Check if user already submitted this session
+    // Check if user already submitted this session (Local Check)
     const submitted = localStorage.getItem('budget_app_submitted');
     if (submitted) setHasSubmitted(true);
 
-    // Load mock votes (Reset if empty)
-    const storedVotes = JSON.parse(localStorage.getItem('budget_app_votes') || '{}');
-    setVoteCounts(storedVotes);
+    // Subscribe to Global Votes (Database Check)
+    if (db) {
+       const unsubscribe = onSnapshot(collection(db, "votes"), (snapshot) => {
+         const newTallies = {};
+         snapshot.forEach((doc) => {
+           const data = doc.data();
+           if (data.items && Array.isArray(data.items)) {
+              data.items.forEach(id => {
+                 newTallies[id] = (newTallies[id] || 0) + 1;
+              });
+           }
+         });
+         setVoteCounts(newTallies);
+       });
+       return () => unsubscribe();
+    }
   }, []);
 
   const totalSpent = cart.reduce((acc, id) => {
@@ -172,30 +208,23 @@ export default function App() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (hasSubmitted) return;
 
     setHasSubmitted(true);
     localStorage.setItem('budget_app_submitted', 'true');
 
-    const newVotes = { ...voteCounts };
-    cart.forEach(id => {
-      newVotes[id] = (newVotes[id] || 0) + 1;
-    });
-    setVoteCounts(newVotes);
-    localStorage.setItem('budget_app_votes', JSON.stringify(newVotes));
-  };
-
-  const handleResetVotes = () => {
-    if (window.confirm("ADMIN ONLY: Are you sure you want to reset ALL vote tallies?")) {
-      // 1. Clear LocalStorage
-      localStorage.removeItem('budget_app_votes');
-      localStorage.removeItem('budget_app_submitted');
-
-      // 2. Reset React State immediately (UI updates without reload)
-      setVoteCounts({});
-      setHasSubmitted(false);
-      setCart([]);
+    // Send votes to the global database
+    if (db) {
+      try {
+        await addDoc(collection(db, "votes"), {
+          items: cart,
+          timestamp: new Date()
+        });
+      } catch (e) {
+        alert("Error submitting vote to database. Check console.");
+        console.error(e);
+      }
     }
   };
 
@@ -431,15 +460,9 @@ export default function App() {
              </div>
           )}
 
-          {/* Admin Reset */}
+          {/* Admin Reset Removed: Requires Database Console Access */}
           <div className="mt-8 pt-8 w-full text-center">
-            <button 
-              onClick={handleResetVotes}
-              className="text-gray-300 text-[10px] hover:text-red-500 transition-colors flex items-center gap-1 mx-auto uppercase tracking-widest"
-            >
-              <ShieldAlert size={10} />
-              Reset System Data
-            </button>
+              <p className="text-[10px] text-gray-300">System ID: {firebaseConfig.projectId || "LOCAL"}</p>
           </div>
 
         </div>
