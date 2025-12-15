@@ -8,12 +8,12 @@ import { getFirestore, collection, addDoc, onSnapshot } from "firebase/firestore
 // --- CONFIGURATION ---
 // TODO: REPLACE THIS SECTION WITH YOUR KEYS FROM FIREBASE CONSOLE
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "...",
-  appId: "..."
+  apiKey: "AIzaSyBItsEZ8CRtYlZBwPXx4HHPwiTYwaaTE68",
+  authDomain: "co-op-store.firebaseapp.com",
+  projectId: "co-op-store",
+  storageBucket: "co-op-store.firebasestorage.app",
+  messagingSenderId: "209795452324",
+  appId: "1:209795452324:web:41eb450cd56c5403a04531"
 };
 
 // Initialize Firebase safely
